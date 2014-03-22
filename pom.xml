@@ -2,12 +2,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.hortonworks.pso.udf</groupId>
-    <artifactId>udf.standard.parser.utils</artifactId>
+    <groupId>com.hortonworks.pso.pig</groupId>
+    <artifactId>com.hortonworks.pso.pig.udf</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>HWX-PSO :: UDF :: Standard Parser Utils</name>
+    <name>HWX-PSO :: PIG UDF :: Standard Format Parser Utils</name>
     <url>http://www.hortonworks.com</url>
 
     <repositories>
