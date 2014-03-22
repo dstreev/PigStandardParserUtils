@@ -1,9 +1,7 @@
 package com.hortonworks.pso.udf.pig.logs.microsoft;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.*;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -21,43 +19,68 @@ import java.io.StringReader;
  */
 public class EXTRACT_XML_LOG_EVENT extends EvalFunc<Tuple> {
     private TupleFactory tupleFactory = TupleFactory.getInstance();
+    private BagFactory bagFactory = BagFactory.getInstance();
+
     private SAXBuilder builder = new SAXBuilder();
-    private XPathExpression<Element>[] xpaths;
+    private PathExpressionWrapper[] xpaths;
 
     public static enum PATHS {
-        EventLog,
-        RecordNumber,
-        TimeGenerated,
-        EventID,
-        ComputerName,
-        EventType,
-        SourceName,
-        EventCategory,
-        EventTypeName,
-        EventCategoryName,
-        Strings,
-        Message;
+        EventLog(DataType.CHARARRAY),
+        RecordNumber(DataType.CHARARRAY),
+        TimeGenerated(DataType.CHARARRAY),
+        EventID(DataType.CHARARRAY),
+        ComputerName(DataType.CHARARRAY),
+        EventType(DataType.CHARARRAY),
+        SourceName(DataType.CHARARRAY),
+        EventCategory(DataType.CHARARRAY),
+        EventTypeName(DataType.CHARARRAY),
+        EventCategoryName(DataType.CHARARRAY),
+        Strings(DataType.BAG),
+        Message(DataType.CHARARRAY);
 
-        public static XPathExpression<Element>[] createXpaths() throws JDOMException {
-            XPathExpression<Element>[] paths = new XPathExpression[PATHS.values().length];
-            int idx = 0;
-            for (PATHS path : PATHS.values()) {
-                paths[idx++] =
-                        XPathFactory.instance().compile("//" + path.toString(), Filters.element());
-            }
-            return paths;
+        private byte dataType;
+
+        public byte getDataType() {
+            return dataType;
+        }
+
+        private PATHS(byte dataType) {
+            this.dataType = dataType;
+        }
+
+
+    }
+
+    private class PathExpressionWrapper {
+        public XPathExpression<Element> xPathExpression;
+        public PATHS paths;
+
+        private PathExpressionWrapper(XPathExpression xPathExpression, PATHS paths) {
+            this.xPathExpression = xPathExpression;
+            this.paths = paths;
         }
 
     }
 
     public EXTRACT_XML_LOG_EVENT() {
         try {
-            xpaths = PATHS.createXpaths();
+            xpaths = createXpaths();
 
         } catch (JDOMException e) {
             e.printStackTrace();
             throw new RuntimeException("Unable to create UDF", e);
         }
+    }
+
+    public PathExpressionWrapper[] createXpaths() throws JDOMException {
+        PathExpressionWrapper[] paths = new PathExpressionWrapper[PATHS.values().length];
+//            XPathExpression<Element>[] paths = new XPathExpression[PATHS.values().length];
+        int idx = 0;
+        for (PATHS path : PATHS.values()) {
+            paths[idx++] =
+                    new PathExpressionWrapper(XPathFactory.instance().compile("//" + path.toString(), Filters.element()), path);
+        }
+        return paths;
     }
 
     @Override
@@ -71,10 +94,32 @@ public class EXTRACT_XML_LOG_EVENT extends EvalFunc<Tuple> {
             throw new RuntimeException("Unable to parse XML: " + xmlSnippet, e);
         }
         int idx = 0;
-        for (XPathExpression<Element> xpath : xpaths) {
-            Element e = (Element) xpath.evaluateFirst(doc);
-            ret.set(idx++, e.getTextNormalize().trim());
-
+        for (PathExpressionWrapper pathWrapper : xpaths) {
+            XPathExpression<Element> xpath = pathWrapper.xPathExpression;
+            switch (pathWrapper.paths.dataType) {
+                case DataType.BAG:
+                    Element e = (Element) xpath.evaluateFirst(doc);
+                    DataBag lclBag = bagFactory.newDefaultBag();
+                    String content = e.getTextNormalize().trim();
+                    String[] parts = content.split("\\|");
+                    Tuple partTuple = tupleFactory.newTuple(parts.length);
+                    int bagTupleIdx = 0;
+                    for (String part: parts) {
+                        partTuple.set(bagTupleIdx++, part);
+                    }
+                    lclBag.add(partTuple);
+                    ret.set(idx++, lclBag);
+                    break;
+                case DataType.CHARARRAY:
+                    Element ec = (Element) xpath.evaluateFirst(doc);
+                    ret.set(idx++, ec.getTextNormalize().trim());
+                    break;
+                default:
+                    // TODO: More handling needed here.
+                    Element ed = (Element) xpath.evaluateFirst(doc);
+                    ret.set(idx++, ed.getTextNormalize().trim());
+                    break;
+            }
         }
         return ret;
     }
@@ -83,7 +128,7 @@ public class EXTRACT_XML_LOG_EVENT extends EvalFunc<Tuple> {
         try {
             Schema tupleSchema = new Schema();
             for (PATHS path : PATHS.values()) {
-                tupleSchema.add(new Schema.FieldSchema(path.toString().toLowerCase(), DataType.CHARARRAY));
+                tupleSchema.add(new Schema.FieldSchema(path.toString().toLowerCase(), path.getDataType()));
             }
 
             return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input),
