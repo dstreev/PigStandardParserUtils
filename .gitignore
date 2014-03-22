@@ -1,0 +1,61 @@
+.DS_Store
+*.class
+
+temp
+
+# Mortar Pig-Server for Local Development
+pig-server
+
+# Junk Files
+*.java.*
+
+# Build Files #
+target
+build
+classes
+
+# Package Files #
+*.jar
+*.war
+*.ear
+
+# Idea Files #
+*.iml
+.idea
+
+# Eclipse Files #
+.settings
+.classpath
+.project
+
+# Archive Files #
+*.gz
+*.tgz
+*.tar
+*.zip
+
+# Log Files #
+*.log
+logs
+log
+
+# Working Files #
+*.swp
+local-testing
+
+# Increment template files
+*.[0-1]
+
+# Vagrant
+cookbooks
+site-cookbooks
+.vagrant
+tmp
+*.lock
+
+# code-deployments
+code-deployment
+vagrant/data.configs
+vagrant/hdp-data-gen
+vagrant/adm*
+
