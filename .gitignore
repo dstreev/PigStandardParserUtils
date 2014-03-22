@@ -1,14 +1,6 @@
 .DS_Store
 *.class
 
-temp
-
-# Mortar Pig-Server for Local Development
-pig-server
-
-# Junk Files
-*.java.*
-
 # Build Files #
 target
 build
@@ -36,26 +28,4 @@ classes
 
 # Log Files #
 *.log
-logs
-log
-
-# Working Files #
-*.swp
-local-testing
-
-# Increment template files
-*.[0-1]
-
-# Vagrant
-cookbooks
-site-cookbooks
-.vagrant
-tmp
-*.lock
-
-# code-deployments
-code-deployment
-vagrant/data.configs
-vagrant/hdp-data-gen
-vagrant/adm*
 
